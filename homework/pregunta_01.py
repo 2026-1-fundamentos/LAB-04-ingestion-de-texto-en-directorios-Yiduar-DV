@@ -4,10 +4,33 @@
 """
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
+
 import os
+import zipfile
 import pandas as pd
-import glob
-import fileinput
+
+
+def _build_dataset(path):
+    data = []
+
+    for target in ["negative", "neutral", "positive"]:
+        folder = os.path.join(path, target)
+
+        for filename in sorted(os.listdir(folder)):
+            filepath = os.path.join(folder, filename)
+
+            with open(filepath, encoding="utf-8") as file:
+                phrase = file.read().strip()
+
+            data.append(
+                {
+                    "phrase": phrase,
+                    "target": target,
+                }
+            )
+
+    return pd.DataFrame(data)
+
 
 def pregunta_01():
     """
@@ -72,65 +95,16 @@ def pregunta_01():
     |  4 | Tampere Science Parks is a Finnish company that owns , leases and builds office properties and it specialises in facilities for technology-oriented businesses         | neutral  |
     ```
 
+
     """
+    if not os.path.exists("files/input"):
+        with zipfile.ZipFile("files/input.zip", "r") as zip_ref:
+            zip_ref.extractall("files")
 
-    test_negative = []
-    files = glob.glob("files/input/test/negative/*")
-    with fileinput.input(files=files) as f:
-        for line in f:
-            test_negative.append((line))
+    os.makedirs("files/output", exist_ok=True)
 
-    test_neutral = []
-    files = glob.glob("files/input/test/neutral/*")
-    with fileinput.input(files=files) as f:
-        for line in f:
-            test_neutral.append((line))
-    
-    test_positive = []
-    files = glob.glob("files/input/test/positive/*")
-    with fileinput.input(files=files) as f:
-        for line in f:
-            test_positive.append((line))
-    
-    train_negative = []
-    files = glob.glob("files/input/train/negative/*")
-    with fileinput.input(files=files) as f:
-        for line in f:
-            train_negative.append((line))
+    train_dataset = _build_dataset("files/input/train")
+    test_dataset = _build_dataset("files/input/test")
 
-    train_neutral = []
-    files = glob.glob("files/input/train/neutral/*")
-    with fileinput.input(files=files) as f:
-        for line in f:
-            train_neutral.append((line))
-    
-    train_positive = []
-    files = glob.glob("files/input/train/positive/*")
-    with fileinput.input(files=files) as f:
-        for line in f:
-            train_positive.append((line))
-
-
-    dic_test_negative = [{"phrase": line, "target": "negative"} for line in test_negative]
-    dic_test_neutral = [{"phrase": line, "target": "neutral"} for line in test_neutral]
-    dic_test_positive = [{"phrase": line, "target": "positive"} for line in test_positive]
-    dic_train_negative = [{"phrase": line, "target": "negative"} for line in train_negative]
-    dic_train_neutral = [{"phrase": line, "target": "neutral"} for line in train_neutral]
-    dic_train_positive = [{"phrase": line, "target": "positive"} for line in train_positive]
-
-    test_dataset = pd.DataFrame(dic_test_positive + dic_test_neutral + dic_test_negative, columns= ["phrase", "target"])
-    train_dataset = pd.DataFrame(dic_train_positive + dic_train_neutral + dic_train_negative, columns= ["phrase", "target"])
-
-    output_folder = "files/output"
-
-    if os.path.exists(output_folder):
-        for file in glob.glob(f"{output_folder}/*"):
-            os.remove(file)
-        os.rmdir(output_folder)
-    os.makedirs(output_folder)
-
-    test_path = os.path.join(output_folder, "test_dataset.csv")
-    train_path = os.path.join(output_folder, "train_dataset.csv")
-
-    test_dataset.to_csv(test_path, index=False)
-    train_dataset.to_csv(train_path, index=False)
+    train_dataset.to_csv("files/output/train_dataset.csv", index=False)
+    test_dataset.to_csv("files/output/test_dataset.csv", index=False)
